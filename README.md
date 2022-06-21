@@ -7,7 +7,6 @@ In my sources list below I have listed two links as to why the problem may occur
 
 ## Developer usage:  
 ### Something to note:
-For any apps that implement this program, you may be asked by Windows if you trust running the program the first time it is used.  
 From my testing this program has been able to capture system wide input just fine with no noticable input delay. However the program will not be able to capture input from any application that is running with higher privileges than the hook application. This program is also only built to run on windows.
 #### Prerequisites:  
 - To use this program your application must be running on Windows and have the program files in your build folder. The latest release of this project can be grabbed [here](github.com/ReadieFur/GlobalInputHook/releases/latest).  
