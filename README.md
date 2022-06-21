@@ -11,9 +11,12 @@ For any apps that implement this program, you may be asked by Windows if you tru
 From my testing this program has been able to capture system wide input just fine with no noticable input delay. However the program will not be able to capture input from any application that is running with higher privileges than the hook application. This program is also only built to run on windows.
 #### Prerequisites:  
 - To use this program your application must be running on Windows and have the program files in your build folder. The latest release of this project can be grabbed [here](github.com/ReadieFur/GlobalInputHook/releases/latest).  
-Once you have met the prerequisites, add the `GlobalInputHook.dll` to your project and you will be able to use the helper functions I have provided to work with the program and shared memory object, here is a basic demo of how to use it (This code can also be found in the test project [here](https://github.com/ReadieFur/GlobalInputHook/tree/development/src/GlobalInputHook.Tests)):  
+
+Once you have met the prerequisites, add the `GlobalInputHook.dll` to your project and you will be able to use the helper functions I have provided (under the namespace `GlobalInputHook.Tools`) to work with the program and shared memory object, here is a basic demo of how to use it (This code can also be found in the test project [here](https://github.com/ReadieFur/GlobalInputHook/tree/development/src/GlobalInputHook.Tests)):  
 #### Creating an instance of the hook program:  
 ```cs
+using GlobalInputHook.Tools;
+
 //You must provide a unique IPC name for the program here.
 /*You can optinally also provide the path for the hook program here, the binary must however be called `GlobalInputHook.exe`
 By default the program will look in the current working directory for the binary.*/
@@ -28,6 +31,9 @@ dataHook.mouseEvent += HookClientHelper_MouseEvent;
 #### Using the event data:  
 Becuase this hook program remains basic, it will only give you the data from the hook, it will not keep track of how long keys are pressed, etc. It is up to you on how you would like to use this data once you obtain it. It **is safe** to do calculation inside these events as they will not slow down the hook program at all.
 ```cs
+using GlobalInputHook.Objects;
+using Forms = System.Windows.Forms;
+
 void HookClientHelper_KeyboardEvent(SKeyboardEventData keyboardEventData)
 {
     Console.WriteLine("HookClientHelper_KeyboardEvent"
@@ -46,7 +52,6 @@ void HookClientHelper_MouseEvent(SMouseEventData mouseEventData)
     ); //Example output: ...MouseEvent:MOUSE_MOVE X:674 Y:362
 }
 ```
-
 #### Make sure you dispose of the hook program!
 Becuase this hook deals with unmanaged memory it is important to make sure you dispose of it when you are done with it.
 ```cs
