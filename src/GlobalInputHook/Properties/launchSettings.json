@@ -1,8 +1,0 @@
-{
-  "profiles": {
-    "GlobalInputHook": {
-      "commandName": "Project",
-      "commandLineArgs": "--ipc-name global_input_hook"
-    }
-  }
-}

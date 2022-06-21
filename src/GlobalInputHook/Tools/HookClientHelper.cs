@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using GlobalInputHook.Objects;
 using Timers = System.Timers;
 
@@ -32,7 +33,7 @@ namespace GlobalInputHook.Tools
             sharedMemory = new SharedMemory<SSharedData>(ipcName, 1);
 
             process = new Process();
-            process.StartInfo.FileName = (inputHookBinaryPath ?? Environment.CurrentDirectory) + "\\GlobalInputHook" + (OperatingSystem.IsWindows() ? ".exe" : "");
+            process.StartInfo.FileName = (inputHookBinaryPath ?? Environment.CurrentDirectory) + "\\GlobalInputHook.exe";
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName}";
             process.Start();

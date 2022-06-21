@@ -5,6 +5,8 @@
 * 3 Failed to map shared buffer.
 */
 
+using System;
+using System.Windows.Forms;
 using Threading = System.Threading;
 using GlobalInputHook.Objects;
 using GlobalInputHook.Tools;
@@ -31,10 +33,6 @@ namespace GlobalInputHook
         [STAThread]
         static void Main()
         {
-            // To customize application configuration such as set high DPI settings or default font,
-            // see https://aka.ms/applicationconfiguration.
-            ApplicationConfiguration.Initialize();
-
 #if RELEASE || true
             SetupParentWatch();
 #endif
@@ -93,9 +91,9 @@ namespace GlobalInputHook
 
         private static void UpdateSharedDataWrapper(Action action)
         {
-            if (!Monitor.TryEnter(sharedDataLocalMutexObject, HookClientHelper.UPDATE_RATE)) return;
+            if (!Threading.Monitor.TryEnter(sharedDataLocalMutexObject, HookClientHelper.UPDATE_RATE)) return;
             action();
-            Monitor.Exit(sharedDataLocalMutexObject);
+            Threading.Monitor.Exit(sharedDataLocalMutexObject);
             sharedMemory.MutexWrite(sharedData.Freeze(), HookClientHelper.UPDATE_RATE);
         }
 

@@ -12,7 +12,7 @@ From my testing this program has been able to capture system wide input just fin
 #### Prerequisites:  
 - To use this program your application must be running on Windows and have the program files in your build folder. The latest release of this project can be grabbed [here](github.com/ReadieFur/GlobalInputHook/releases/latest).  
 
-Once you have met the prerequisites, add the `GlobalInputHook.dll` to your project and you will be able to use the helper functions I have provided (under the namespace `GlobalInputHook.Tools`) to work with the program and shared memory object, here is a basic demo of how to use it (This code can also be found in the test project [here](https://github.com/ReadieFur/GlobalInputHook/tree/development/src/GlobalInputHook.Tests)):  
+Once you have met the prerequisites, add the `GlobalInputHook.exe` to your project references and you will be able to use the helper functions I have provided (under the namespace `GlobalInputHook.Tools`) to work with the program and shared memory object, here is a basic demo of how to use it (This code can also be found in the test project [here](https://github.com/ReadieFur/GlobalInputHook/tree/development/src/GlobalInputHook.Tests)):  
 #### Creating an instance of the hook program:  
 ```cs
 using GlobalInputHook.Tools;

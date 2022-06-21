@@ -1,4 +1,7 @@
-﻿using System.IO.MemoryMappedFiles;
+﻿using System;
+using System.Threading;
+using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
 
 namespace GlobalInputHook.Tools
