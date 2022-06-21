@@ -1,19 +1,16 @@
 # Global Input Hook  
-A simple program for hooking into Windows input.
+A simple program for hooking into Windows input.  
 
 ## Why did I create this?  
 While there are other tools out there like [globalmousekeyhook](https://github.com/gmamaladze/globalmousekeyhook), which does work "fine", in certain C# versions it will cause the system input to become extremely slow which is a VERY big problem for the user experience.  
-In my sources list below I have listed two links as to why the problem may occur. In reading this I decided to create this program which makes use of a WinForms application to hook into the system input and then share that data using a shared memory object. This way the program will remain fast and not slowed down by your C# application (assuming you aren't using WinForms).
-
-## Client usage:  
+In my sources list below I have listed two links as to why the problem may occur. In reading this I decided to create this program which makes use of a WinForms application to hook into the system input and then share that data using a shared memory object. This way the program will remain fast and not slowed down by your C# application (assuming you aren't using WinForms).  
 
 ## Developer usage:  
 ### Something to note:
 For any apps that implement this program, you may be asked by Windows if you trust running the program the first time it is used.  
 From my testing this program has been able to capture system wide input just fine with no noticable input delay. However the program will not be able to capture input from any application that is running with higher privileges than the hook application. This program is also only built to run on windows.
 #### Prerequisites:  
-- To use this program your application must be running on Windows and have the program files in your build folder. The latest release of this project can be grabbed [here](github.com/ReadieFur/GlobalInputHook/releases/latest).
-
+- To use this program your application must be running on Windows and have the program files in your build folder. The latest release of this project can be grabbed [here](github.com/ReadieFur/GlobalInputHook/releases/latest).  
 Once you have met the prerequisites, add the `GlobalInputHook.dll` to your project and you will be able to use the helper functions I have provided to work with the program and shared memory object, here is a basic demo of how to use it (This code can also be found in the test project [here](https://github.com/ReadieFur/GlobalInputHook/tree/development/src/GlobalInputHook.Tests)):  
 #### Creating an instance of the hook program:  
 ```cs
