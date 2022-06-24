@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using GlobalInputHook.Objects;
 using Timers = System.Timers;
@@ -63,16 +64,14 @@ namespace GlobalInputHook.Tools
             process.StartInfo.FileName = inputHookBinary;
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName}";
-            process.Exited += Process_Exited;
             process.Start();
-        }
-
-        private void Process_Exited(object sender, EventArgs e)
-        {
-            //If this is reached then the program has likley crashed.
-            if (shouldExit) return;
-            Thread.Sleep(1000);
-            StartHookProcess();
+            Task.Run(() =>
+            {
+                process.WaitForExit();
+                if (shouldExit) return;
+                Thread.Sleep(1000); //Wait for a moment.
+                StartHookProcess();
+            });
         }
 
         private void Timer_Elapsed(object? sender, Timers.ElapsedEventArgs e)
