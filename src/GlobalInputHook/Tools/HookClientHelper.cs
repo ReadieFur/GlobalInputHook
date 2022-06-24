@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Diagnostics;
 using GlobalInputHook.Objects;
 using Timers = System.Timers;
@@ -23,35 +24,55 @@ namespace GlobalInputHook.Tools
         public event Action<SKeyboardEventData> keyboardEvent;
         public event Action<SMouseEventData> mouseEvent;
 
+        private string ipcName;
+        private string inputHookBinary;
+        private bool shouldExit = false;
         private SharedMemory<SSharedData> sharedMemory;
-        private Process process;
-        private Timers.Timer timer;
+        private Process? process;
+        private Timers.Timer updateTimer;
         private SSharedData lastSharedData;
 
         private HookClientHelper(string ipcName, string? inputHookBinaryPath = null)
         {
             sharedMemory = new SharedMemory<SSharedData>(ipcName, 1);
 
-            process = new Process();
-            process.StartInfo.FileName = (inputHookBinaryPath ?? Environment.CurrentDirectory) + "\\GlobalInputHook.exe";
-            process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName}";
-            process.Start();
+            this.ipcName = ipcName;
+            inputHookBinary = (inputHookBinaryPath ?? Environment.CurrentDirectory) + "\\GlobalInputHook.exe";
+            StartHookProcess();
 
-            timer = new Timers.Timer();
-            timer.AutoReset = true;
-            timer.Interval = UPDATE_RATE; //Limited to 1000 updates per second (this is the quickest this type of loop can fire).
-            timer.Elapsed += Timer_Elapsed;
-            timer.Start();
+            updateTimer = new Timers.Timer();
+            updateTimer.AutoReset = true;
+            updateTimer.Interval = UPDATE_RATE; //Limited to 1000 updates per second (this is the quickest this type of loop can fire).
+            updateTimer.Elapsed += Timer_Elapsed;
+            updateTimer.Start();
         }
 
         public void Dispose()
         {
-            timer.Stop();
-            timer.Dispose();
-            process.Close();
-            process.Dispose();
+            shouldExit = true;
+            updateTimer.Stop();
+            updateTimer.Dispose();
+            process?.Close();
+            process?.Dispose();
             sharedMemory.Dispose();
+        }
+
+        private void StartHookProcess()
+        {
+            process = new Process();
+            process.StartInfo.FileName = inputHookBinary;
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName}";
+            process.Exited += Process_Exited;
+            process.Start();
+        }
+
+        private void Process_Exited(object sender, EventArgs e)
+        {
+            //If this is reached then the program has likley crashed.
+            if (shouldExit) return;
+            Thread.Sleep(1000);
+            StartHookProcess();
         }
 
         private void Timer_Elapsed(object? sender, Timers.ElapsedEventArgs e)
