@@ -48,14 +48,16 @@ namespace GlobalInputHook.Tools
             updateTimer.Start();
         }
 
+        ~HookClientHelper() => Dispose();
+
         public void Dispose()
         {
             shouldExit = true;
-            updateTimer.Stop();
-            updateTimer.Dispose();
+            updateTimer?.Stop();
+            updateTimer?.Dispose();
             process?.Close();
             process?.Dispose();
-            sharedMemory.Dispose();
+            sharedMemory?.Dispose();
         }
 
         private void StartHookProcess()

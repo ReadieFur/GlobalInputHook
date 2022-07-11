@@ -34,11 +34,13 @@ namespace GlobalInputHook.Tools
             mutex.ReleaseMutex();
         }
 
+        ~SharedMemory() => Dispose();
+
         public void Dispose()
         {
-            mutex.Dispose();
-            accessor.Dispose();
-            mappedFile.Dispose();
+            mutex?.Dispose();
+            accessor?.Dispose();
+            mappedFile?.Dispose();
         }
 
         public bool LockMutex(int millisecondsTimeout = -1)
