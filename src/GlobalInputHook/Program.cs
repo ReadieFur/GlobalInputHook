@@ -1,10 +1,3 @@
-/*Exit codes:
-* 1 Invalid parent ID.
-* 2 Parent process exited.
-* 2 Invalid map argument.
-* 3 Failed to map shared buffer.
-*/
-
 using System;
 using System.Windows.Forms;
 using Threading = System.Threading;
@@ -22,6 +15,8 @@ namespace GlobalInputHook
             private set {}
         }
 
+        private static int updateRateMS;
+        private static DateTime lastUpdateTime;
         private static Threading.Timer parentProcessWatchTimer;
         private static SharedMemory<SSharedData> sharedMemory;
         private static SharedData sharedData;
@@ -62,16 +57,18 @@ namespace GlobalInputHook
         private static void SetupParentWatch()
         {
             int parentProcessIDArgIndex = Array.FindIndex(args, itm => itm == "--parent-process-id");
-            if (parentProcessIDArgIndex == -1) Environment.Exit(1);
-            else if (++parentProcessIDArgIndex >= args.Length) Environment.Exit(1);
+            if (parentProcessIDArgIndex == -1 || ++parentProcessIDArgIndex >= args.Length) Environment.Exit((int)EExitCodes.InvalidParentProcessID);
+            
             int parentProcessID;
-            if (!int.TryParse(args[parentProcessIDArgIndex], out parentProcessID)) Environment.Exit(1);
+            if (!int.TryParse(args[parentProcessIDArgIndex], out parentProcessID)) Environment.Exit((int)EExitCodes.InvalidParentProcessID);
+            
             Process? parentProcess = null;
             try { parentProcess = Process.GetProcessById(parentProcessID); }
-            catch { Environment.Exit(1); }
+            catch { Environment.Exit((int)EExitCodes.InvalidParentProcessID); }
+            
             parentProcessWatchTimer = new Threading.Timer((_) =>
             {
-                if (parentProcess!.HasExited) Environment.Exit(2);
+                if (parentProcess!.HasExited) Environment.Exit((int)EExitCodes.ParentProcessExited);
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
         }
 
@@ -79,11 +76,17 @@ namespace GlobalInputHook
         {
 #if DEBUG && false
             string ipcName = "global_input_hook";
+            updateRateMS = 1;
 #else
             int mapArgIndex = Array.FindIndex(args, itm => itm == "--ipc-name");
-            if (mapArgIndex == -1) Environment.Exit(3);
-            else if (++mapArgIndex >= args.Length) Environment.Exit(3);
+            if (mapArgIndex == -1 || ++mapArgIndex >= args.Length) Environment.Exit((int)EExitCodes.InvalidMapArgument);
             string ipcName = args[mapArgIndex];
+
+            int updateRateArgIndex = Array.FindIndex(args, itm => itm == "--update-rate");
+            if (updateRateArgIndex == -1
+                || ++updateRateArgIndex >= args.Length
+                || !int.TryParse(args[updateRateArgIndex], out updateRateMS))
+                Environment.Exit((int)EExitCodes.InvalidUpdateRateArgument);
 #endif
             sharedMemory = new SharedMemory<SSharedData>(ipcName);
             sharedData = new SharedData();
@@ -91,10 +94,16 @@ namespace GlobalInputHook
 
         private static void UpdateSharedDataWrapper(Action action)
         {
-            if (!Threading.Monitor.TryEnter(sharedDataLocalMutexObject, HookClientHelper.UPDATE_RATE)) return;
+            //Waiting on the mutex here hopefulyl shouldn't be a problem, so I am skipping it to save some CPU time.
+            //if (!Threading.Monitor.TryEnter(sharedDataLocalMutexObject, HookClientHelper.UPDATE_RATE_MS)) return;
             action();
-            Threading.Monitor.Exit(sharedDataLocalMutexObject);
-            sharedMemory.MutexWrite(sharedData.Freeze(), HookClientHelper.UPDATE_RATE);
+            //Threading.Monitor.Exit(sharedDataLocalMutexObject);
+            
+            DateTime now = DateTime.Now;
+            if (now - lastUpdateTime < TimeSpan.FromMilliseconds(updateRateMS)) return;
+            lastUpdateTime = now;
+
+            sharedMemory.MutexWrite(sharedData.Freeze(), updateRateMS);
         }
 
         private static void KeyboardHook_KeyboardEvent(SKeyboardEventData keyboardEventData)

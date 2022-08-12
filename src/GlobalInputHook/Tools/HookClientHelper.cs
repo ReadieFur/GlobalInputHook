@@ -11,17 +11,18 @@ namespace GlobalInputHook.Tools
     public class HookClientHelper : IDisposable
     {
         #region Static
-        public const int UPDATE_RATE = 1; //In milliseconds.
+        //public const int UPDATE_RATE_MS = 1; //In milliseconds.
         public static HookClientHelper instance { get; private set; }
 
-        public static HookClientHelper GetOrCreateInstance(string ipcName, string? inputHookBinaryPath = null)
+        public static HookClientHelper GetOrCreateInstance(string ipcName, int updateRateMS = 1, string? inputHookBinaryPath = null)
         {
             if (instance != null) return instance;
-            instance = new HookClientHelper(ipcName, inputHookBinaryPath);
+            instance = new HookClientHelper(ipcName, updateRateMS, inputHookBinaryPath);
             return instance;
         }
         #endregion
-
+        
+        public int updateRateMS { get; private set; } = 1;
         public event Action<SKeyboardEventData> keyboardEvent;
         public event Action<SMouseEventData> mouseEvent;
 
@@ -33,17 +34,18 @@ namespace GlobalInputHook.Tools
         private Timers.Timer updateTimer;
         private SSharedData lastSharedData;
 
-        private HookClientHelper(string ipcName, string? inputHookBinaryPath = null)
+        private HookClientHelper(string ipcName, int updateRateMS = 1, string? inputHookBinaryPath = null)
         {
             sharedMemory = new SharedMemory<SSharedData>(ipcName, 1);
 
+            this.updateRateMS = 1;
             this.ipcName = ipcName;
             inputHookBinary = (inputHookBinaryPath ?? Environment.CurrentDirectory) + "\\GlobalInputHook.exe";
             StartHookProcess();
 
             updateTimer = new Timers.Timer();
             updateTimer.AutoReset = true;
-            updateTimer.Interval = UPDATE_RATE; //Limited to 1000 updates per second (this is the quickest this type of loop can fire).
+            updateTimer.Interval = updateRateMS; //Limited to 1000 updates per second (this is the quickest this type of loop can fire).
             updateTimer.Elapsed += Timer_Elapsed;
             updateTimer.Start();
         }
@@ -65,7 +67,7 @@ namespace GlobalInputHook.Tools
             process = new Process();
             process.StartInfo.FileName = inputHookBinary;
             process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName}";
+            process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName} --update-rate {updateRateMS}";
             process.Start();
             Task.Run(() =>
             {
@@ -78,7 +80,7 @@ namespace GlobalInputHook.Tools
 
         private void Timer_Elapsed(object? sender, Timers.ElapsedEventArgs e)
         {
-            if (!sharedMemory.MutexRead(out SSharedData sharedData, UPDATE_RATE)) return; //Set the timeout to be no longer than the update rate.
+            if (!sharedMemory.MutexRead(out SSharedData sharedData, updateRateMS)) return; //Set the timeout to be no longer than the update rate.
 
             #region Keyboard data checks.
             if (sharedData.keyboardEventData.keyCode != lastSharedData.keyboardEventData.keyCode
