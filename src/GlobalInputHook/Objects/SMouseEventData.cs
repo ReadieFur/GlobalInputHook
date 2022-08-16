@@ -1,8 +1,8 @@
 ﻿namespace GlobalInputHook.Objects
 {
-    public struct SMouseEventData
+    internal struct SMouseEventData
     {
         public EMouseEvent eventType;
-        public SPoint cursorPosition;
+        public SVector2 cursorPosition;
     }
 }

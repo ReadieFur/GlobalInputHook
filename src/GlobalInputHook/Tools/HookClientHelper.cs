@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using GlobalInputHook.Objects;
-using Timers = System.Timers;
+using CSharpTools.Pipes;
 
 namespace GlobalInputHook.Tools
 {
@@ -14,40 +13,32 @@ namespace GlobalInputHook.Tools
         //public const int UPDATE_RATE_MS = 1; //In milliseconds.
         public static HookClientHelper instance { get; private set; }
 
-        public static HookClientHelper GetOrCreateInstance(string ipcName, int updateRateMS = 1, string? inputHookBinaryPath = null)
+        public static HookClientHelper GetOrCreateInstance(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
         {
             if (instance != null) return instance;
-            instance = new HookClientHelper(ipcName, updateRateMS, inputHookBinaryPath);
+            instance = new HookClientHelper(ipcName, maxUpdateRateMS, inputHookBinaryPath);
             return instance;
         }
         #endregion
-        
-        public int updateRateMS { get; private set; } = 1;
-        public event Action<SKeyboardEventData> keyboardEvent;
-        public event Action<SMouseEventData> mouseEvent;
 
         private string ipcName;
         private string inputHookBinary;
+        private int maxUpdateRateMS;
         private bool shouldExit = false;
-        private SharedMemory<SSharedData> sharedMemory;
+        private PipeClient pipeClient;
         private Process? process;
-        private Timers.Timer updateTimer;
-        private SSharedData lastSharedData;
+        private SHookData lastData;
 
-        private HookClientHelper(string ipcName, int updateRateMS = 1, string? inputHookBinaryPath = null)
+        public Action<SHookData>? onData;
+
+        private HookClientHelper(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
         {
-            sharedMemory = new SharedMemory<SSharedData>(ipcName, 1);
-
-            this.updateRateMS = 1;
+            this.maxUpdateRateMS = 1;
             this.ipcName = ipcName;
             inputHookBinary = (inputHookBinaryPath ?? Environment.CurrentDirectory) + "\\GlobalInputHook.exe";
+            
             StartHookProcess();
-
-            updateTimer = new Timers.Timer();
-            updateTimer.AutoReset = true;
-            updateTimer.Interval = updateRateMS; //Limited to 1000 updates per second (this is the quickest this type of loop can fire).
-            updateTimer.Elapsed += Timer_Elapsed;
-            updateTimer.Start();
+            StartIPC();
         }
 
         ~HookClientHelper() => Dispose();
@@ -55,47 +46,53 @@ namespace GlobalInputHook.Tools
         public void Dispose()
         {
             shouldExit = true;
-            updateTimer?.Stop();
-            updateTimer?.Dispose();
             process?.Close();
             process?.Dispose();
-            sharedMemory?.Dispose();
+            pipeClient?.Dispose();
+            instance = null;
         }
 
-        private void StartHookProcess()
+        private async void StartHookProcess()
         {
             process = new Process();
             process.StartInfo.FileName = inputHookBinary;
             process.StartInfo.CreateNoWindow = true;
-            process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName} --update-rate {updateRateMS}";
+            process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName} --max-update-rate-ms {maxUpdateRateMS}";
             process.Start();
-            Task.Run(() =>
-            {
-                process.WaitForExit();
-                if (shouldExit) return;
-                Thread.Sleep(1000); //Wait for a moment.
-                StartHookProcess();
-            });
+            
+            await Task.Run(process.WaitForExit);
+            pipeClient?.Dispose();
+
+            if (shouldExit) return;
+            await Task.Delay(1000); //Wait for a moment.
+            StartHookProcess();
         }
 
-        private void Timer_Elapsed(object? sender, Timers.ElapsedEventArgs e)
+        private void StartIPC()
         {
-            if (!sharedMemory.MutexRead(out SSharedData sharedData, updateRateMS)) return; //Set the timeout to be no longer than the update rate.
+            pipeClient = new PipeClient(ipcName, Helpers.ComputeBufferSizeOf<SHookData>());
+            pipeClient.onMessage += PipeClient_onMessage;
+            pipeClient.onDispose += PipeClient_onDispose;
+        }
 
-            #region Keyboard data checks.
-            if (sharedData.keyboardEventData.keyCode != lastSharedData.keyboardEventData.keyCode
-                || sharedData.keyboardEventData.eventType != lastSharedData.keyboardEventData.eventType
-            ) keyboardEvent?.Invoke(sharedData.keyboardEventData);
-            #endregion
+        private void PipeClient_onMessage(ReadOnlyMemory<byte> data)
+        {
+            SHookData serializedData;
+            try { serializedData = Helpers.Deserialize<SHookData>(data.ToArray()); }
+            catch { return; }
+            
+            if (serializedData.Equals(lastData)) return;
 
-            #region Mouse data checks.
-            if (sharedData.mouseEventData.eventType != lastSharedData.mouseEventData.eventType
-                || sharedData.mouseEventData.cursorPosition.x != lastSharedData.mouseEventData.cursorPosition.x
-                || sharedData.mouseEventData.cursorPosition.y != lastSharedData.mouseEventData.cursorPosition.y
-            ) mouseEvent?.Invoke(sharedData.mouseEventData);
-            #endregion
+            onData?.Invoke(serializedData);
 
-            lastSharedData = sharedData;
+            lastData = serializedData;
+        }
+
+        private async void PipeClient_onDispose()
+        {
+            if (shouldExit) return;
+            await Task.Delay(1000);
+            StartIPC();
         }
     }
 }

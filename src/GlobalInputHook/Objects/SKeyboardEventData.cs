@@ -1,8 +1,10 @@
-﻿namespace GlobalInputHook.Objects
+﻿using System.Windows.Forms;
+
+namespace GlobalInputHook.Objects
 {
-	public struct SKeyboardEventData
+	internal struct SKeyboardEventData
 	{
 		public EKeyEvent eventType;
-		public int keyCode;
+		public Keys key;
 	}
 }

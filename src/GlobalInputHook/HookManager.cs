@@ -17,7 +17,9 @@ namespace GlobalInputHook
         {
             this.callback = callback;
             hookProc = HookCallback;
+#pragma warning disable CS0618 // Type or member is obsolete
             if (library == null) hookHandle = HookHelper.SetWindowsHookEx(hookType, hookProc, AppDomain.GetCurrentThreadId());
+#pragma warning restore CS0618 // Type or member is obsolete
             else hookHandle = HookHelper.SetWindowsHookEx(hookType, hookProc, HookHelper.LoadLibrary("User32"));
             if (hookHandle == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
         }

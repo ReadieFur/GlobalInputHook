@@ -1,8 +1,8 @@
 ﻿namespace GlobalInputHook.Objects
 {
-    public struct SMouseHookData
+    internal struct SMouseHookData
     {
-        public SPoint pt;
+        public SVector2 pt;
         public int hwnd;
         public int wHitTestCode;
         public int dwExtraInfo;

@@ -5,7 +5,7 @@
         Normal = 0,
         InvalidParentProcessID,
         InvalidMapArgument,
-        InvalidUpdateRateArgument,
+        InvalidMaxUpdateRateArgument,
         ParentProcessExited
     }
 }

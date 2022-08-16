@@ -1,6 +1,6 @@
 ﻿namespace GlobalInputHook.Objects
 {
-    public enum EMouseEvent
+    internal enum EMouseEvent
     {
         MOUSE_MOVE = 0x0200,
         LBUTTON_DOWN = 0x0201,
