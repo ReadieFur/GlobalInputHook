@@ -1,49 +1,32 @@
 ﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+using System.Windows.Forms;
 using GlobalInputHook.Objects;
 
 namespace GlobalInputHook
 {
-    internal static class KeyboardHook
-    {
-		public static Action<SKeyboardEventData> keyboardEvent;
-		public static SKeyboardEventData lastKeyboardEventData { get; private set; }
+    internal class KeyboardHook : AHook<SKeyboardEventData>
+	{
+		public static readonly KeyboardHook INSTANCE = new KeyboardHook();
 
-		private const int WH_KEYBOARD_LL = 13;
-		private static HookManager? hookManager;
-		private static object mutexObject = new object();
+		private SKeyboardEventData lastData;
 
-		public static void Hook()
+		protected override int HOOK_TYPE_ID { get => 13; }
+		protected override string LIBRARY { get => "User32"; }
+
+        public override event Action<SKeyboardEventData>? onData;
+
+		protected override void HookCallback(int code, int wParam, IntPtr lParam)
 		{
-			hookManager = new HookManager(HookHelper.WrapHookProcVoidCallback(HookCallback), WH_KEYBOARD_LL, "User32");
-		}
-
-		public static void Unhook() => hookManager?.Dispose();
-
-		private static void HookCallback(int code, int wParam, IntPtr lParam)
-		{
-			if (!Monitor.TryEnter(mutexObject, 0)) return;
-
 			SKeyboardEventData keyboardEventData = new SKeyboardEventData
 			{
 				eventType = (EKeyEvent)wParam,
-				keyCode = HookHelper.IntPtrToStruct<SKeyboardHookData>(lParam).vkCode
+				key = (Keys)HookHelper.IntPtrToStruct<SKeyboardHookData>(lParam).vkCode
 			};
 
-			if (
-				lastKeyboardEventData.eventType != keyboardEventData.eventType
-				|| lastKeyboardEventData.keyCode != keyboardEventData.keyCode
-			)
-            {
-				Task.Run(() => keyboardEvent.Invoke(keyboardEventData));
-				//foreach (Action<SKeyboardEventData> action in newKeyboardEvent.GetInvocationList())
-					//Task.Run(() => action.Invoke(keyboardEventData));
+			if (keyboardEventData.Equals(lastData)) return;
+            lastData = keyboardEventData;
 
-				lastKeyboardEventData = keyboardEventData;
-			}
-
-			Monitor.Exit(mutexObject);
+			onData?.Invoke(keyboardEventData);
 		}
 	}
 }

@@ -1,26 +1,25 @@
+//#define DEBUG_OVERRIDE
+
 using System;
 using System.Windows.Forms;
 using Threading = System.Threading;
 using GlobalInputHook.Objects;
-using GlobalInputHook.Tools;
 using System.Diagnostics;
+using CSharpTools.Pipes;
 
 namespace GlobalInputHook
 {
+    //TODO: Make this program a singleton which requires an owner at all times, if the host process ends, signal another program to take over (if applicable).
+
     internal static class Program
     {
-        public static string[] args
-        {
-            get => Environment.GetCommandLineArgs();
-            private set {}
-        }
+        public static readonly string[] args = Environment.GetCommandLineArgs();
 
-        private static int updateRateMS;
+        private static int maxUpdateRateMS;
         private static DateTime lastUpdateTime;
         private static Threading.Timer parentProcessWatchTimer;
-        private static SharedMemory<SSharedData> sharedMemory;
-        private static SharedData sharedData;
-        private static object sharedDataLocalMutexObject = new object();
+        private static PipeServerManager pipeServerManager;
+        private static CapturedData capturedData = new();
 
         /// <summary>
         ///  The main entry point for the application.
@@ -28,18 +27,11 @@ namespace GlobalInputHook
         [STAThread]
         static void Main()
         {
-#if RELEASE || true
+#if RELEASE || !DEBUG_OVERRIDE
             SetupParentWatch();
 #endif
-            SetupSharedMemory();
-
-            #region Setup hooks
-            KeyboardHook.keyboardEvent += KeyboardHook_KeyboardEvent;
-            KeyboardHook.Hook();
-
-            MouseHook.mouseEvent += MouseHook_MouseEvent;
-            MouseHook.Hook();
-            #endregion
+            SetupIPC();
+            SetupHooks();
 
             Application.ApplicationExit += Application_ApplicationExit;
 
@@ -49,9 +41,9 @@ namespace GlobalInputHook
         private static void Application_ApplicationExit(object? sender, EventArgs e)
         {
             parentProcessWatchTimer.Dispose();
-            KeyboardHook.Unhook();
-            MouseHook.Unhook();
-            sharedMemory.Dispose();
+            KeyboardHook.INSTANCE.Unhook();
+            MouseHook.INSTANCE.Unhook();
+            pipeServerManager.Dispose();
         }
 
         private static void SetupParentWatch()
@@ -69,63 +61,108 @@ namespace GlobalInputHook
             parentProcessWatchTimer = new Threading.Timer((_) =>
             {
                 if (parentProcess!.HasExited) Environment.Exit((int)EExitCodes.ParentProcessExited);
-            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
-        private static void SetupSharedMemory()
+        private static void SetupHooks()
         {
-#if DEBUG && false
+            KeyboardHook.INSTANCE.onData += KeyboardHook_KeyboardEvent;
+            MouseHook.INSTANCE.onData += MouseHook_MouseEvent;
+            
+            KeyboardHook.INSTANCE.Hook();
+            MouseHook.INSTANCE.Hook();
+        }
+
+        private static void SetupIPC()
+        {
+#if DEBUG && DEBUG_OVERRIDE
             string ipcName = "global_input_hook";
-            updateRateMS = 1;
+            maxUpdateRateMS = 1;
 #else
             int mapArgIndex = Array.FindIndex(args, itm => itm == "--ipc-name");
             if (mapArgIndex == -1 || ++mapArgIndex >= args.Length) Environment.Exit((int)EExitCodes.InvalidMapArgument);
             string ipcName = args[mapArgIndex];
 
-            int updateRateArgIndex = Array.FindIndex(args, itm => itm == "--update-rate");
-            if (updateRateArgIndex == -1
-                || ++updateRateArgIndex >= args.Length
-                || !int.TryParse(args[updateRateArgIndex], out updateRateMS))
-                Environment.Exit((int)EExitCodes.InvalidUpdateRateArgument);
+            int maxUpdateRateMSArgIndex = Array.FindIndex(args, itm => itm == "--max-update-rate-ms");
+            if (maxUpdateRateMSArgIndex == -1 || ++maxUpdateRateMSArgIndex >= args.Length) Environment.Exit((int)EExitCodes.InvalidMaxUpdateRateArgument);
+            if (!int.TryParse(args[maxUpdateRateMSArgIndex], out maxUpdateRateMS)) Environment.Exit((int)EExitCodes.InvalidMaxUpdateRateArgument);
 #endif
-            sharedMemory = new SharedMemory<SSharedData>(ipcName);
-            sharedData = new SharedData();
+
+            pipeServerManager = new PipeServerManager(ipcName, Helpers.ComputeBufferSizeOf<SHookData>());
+            pipeServerManager.onMessage += PipeServerManager_onMessage;
         }
 
-        private static void UpdateSharedDataWrapper(Action action)
-        {
-            //Waiting on the mutex here hopefulyl shouldn't be a problem, so I am skipping it to save some CPU time.
-            //if (!Threading.Monitor.TryEnter(sharedDataLocalMutexObject, HookClientHelper.UPDATE_RATE_MS)) return;
-            action();
-            //Threading.Monitor.Exit(sharedDataLocalMutexObject);
-            
-            DateTime now = DateTime.Now;
-            if (now - lastUpdateTime < TimeSpan.FromMilliseconds(updateRateMS)) return;
-            lastUpdateTime = now;
+        //For manual request of data.
+        private static void PipeServerManager_onMessage(Guid id, ReadOnlyMemory<byte> data) =>
+            pipeServerManager.SendMessage(id, Helpers.Serialize(capturedData.Freeze().Value));
 
-            sharedMemory.MutexWrite(sharedData.Freeze(), updateRateMS);
+        private static void BroadcastIPC(EHookEvent hookEvent)
+        {
+            SHookData? data = capturedData.Freeze(hookEvent);
+            if (data == null) return;
+
+            DateTime now = DateTime.Now;
+            if (now - lastUpdateTime < TimeSpan.FromMilliseconds(maxUpdateRateMS)) return;
+            lastUpdateTime = now;
+            
+            pipeServerManager.BroadcastMessage(Helpers.Serialize(data.Value));
         }
 
         private static void KeyboardHook_KeyboardEvent(SKeyboardEventData keyboardEventData)
         {
-            UpdateSharedDataWrapper(() => sharedData.keyboardEventData = keyboardEventData);
-
-#if DEBUG && false
-            //Debug.WriteLine(keyboardEventData.keyCode);
-            sharedMemory.MutexRead(out SSharedData outValue, 1);
-            Debug.WriteLine(outValue.keyboardEventData.keyCode);
-#endif
+            EHookEvent hookEvent = EHookEvent.None; //This value will get overwritten, it is just here as a placeholder.
+            switch (keyboardEventData.eventType)
+            {
+                case EKeyEvent.SYSKEY_DOWN:
+                case EKeyEvent.KEY_DOWN:
+                    if (capturedData.pressedKeyboardKeys.Contains((SKeyboardKeys)keyboardEventData.key)) return;
+                    capturedData.pressedKeyboardKeys.Add((SKeyboardKeys)keyboardEventData.key);
+                    hookEvent = EHookEvent.KeyboardKeyDown;
+                    break;
+                case EKeyEvent.SYSKEY_UP:
+                case EKeyEvent.KEY_UP:
+                    if (!capturedData.pressedKeyboardKeys.Contains((SKeyboardKeys)keyboardEventData.key)) return;
+                    capturedData.pressedKeyboardKeys.Remove((SKeyboardKeys)keyboardEventData.key);
+                    hookEvent = EHookEvent.KeyboardKeyUp;
+                    break;
+            }
+            BroadcastIPC(hookEvent);
         }
 
         private static void MouseHook_MouseEvent(SMouseEventData mouseEventData)
         {
-            UpdateSharedDataWrapper(() => sharedData.mouseEventData = mouseEventData);
-
-#if DEBUG && false
-            //Debug.WriteLine(mouseEventData.cursorPosition.x);
-            sharedMemory.MutexRead(out SSharedData outValue, 1);
-            Debug.WriteLine(outValue.mouseEventData.cursorPosition.x);
-#endif
+            EHookEvent hookEvent = EHookEvent.None;
+            switch (mouseEventData.eventType)
+            {
+                case EMouseEvent.MOUSEWHEEL:
+                    //Skip mouse wheel events for now (this is because I don't know a way to tell if the mousewheel is still being used).
+                    return;
+                case EMouseEvent.LBUTTON_UP:
+                    if (!capturedData.pressedMouseButtons.Contains(SMouseButtons.LeftButton)) return;
+                    capturedData.pressedMouseButtons.Remove(SMouseButtons.LeftButton);
+                    hookEvent = EHookEvent.MouseButtonUp;
+                    break;
+                case EMouseEvent.LBUTTON_DOWN:
+                    if (capturedData.pressedMouseButtons.Contains(SMouseButtons.LeftButton)) return;
+                    capturedData.pressedMouseButtons.Add(SMouseButtons.LeftButton);
+                    hookEvent = EHookEvent.MouseButtonDown;
+                    break;
+                case EMouseEvent.RBUTTON_UP:
+                    if (!capturedData.pressedMouseButtons.Contains(SMouseButtons.RightButton)) return;
+                    capturedData.pressedMouseButtons.Remove(SMouseButtons.RightButton);
+                    hookEvent = EHookEvent.MouseButtonUp;
+                    break;
+                case EMouseEvent.RBUTTON_DOWN:
+                    if (capturedData.pressedMouseButtons.Contains(SMouseButtons.RightButton)) return;
+                    capturedData.pressedMouseButtons.Add(SMouseButtons.RightButton);
+                    hookEvent = EHookEvent.MouseButtonDown;
+                    break;
+                case EMouseEvent.MOUSE_MOVE:
+                    capturedData.mousePosition = mouseEventData.cursorPosition;
+                    hookEvent = EHookEvent.MouseMove;
+                    break;
+            }
+            BroadcastIPC(hookEvent);
         }
     }
 }

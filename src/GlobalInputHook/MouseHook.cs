@@ -1,47 +1,31 @@
 ﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
 using GlobalInputHook.Objects;
 
 namespace GlobalInputHook
 {
-    internal class MouseHook
-    {
-		public static Action<SMouseEventData> mouseEvent;
-		public static SMouseEventData lastMouseEventData { get; private set; }
+    internal class MouseHook : AHook<SMouseEventData>
+	{
+		public static readonly MouseHook INSTANCE = new MouseHook();
 
-		private const int WH_MOUSE_LL = 14;
-        private static HookManager? hookManager;
-        private static object mutexObject = new object();
+		private SMouseEventData lastData;
 
-		public static void Hook()
-		{
-			hookManager = new HookManager(HookHelper.WrapHookProcVoidCallback(HookCallback), WH_MOUSE_LL, "User32");
-		}
+		protected override int HOOK_TYPE_ID { get => 14; }
+		protected override string LIBRARY { get => "User32"; }
 
-		public static void Unhook() => hookManager?.Dispose();
+		public override event Action<SMouseEventData>? onData;
 
-		private static void HookCallback(int code, int wParam, IntPtr lParam)
-		{
-			if (!Monitor.TryEnter(mutexObject, 0)) return;
-
+		protected override void HookCallback(int code, int wParam, IntPtr lParam)
+        {
 			SMouseEventData mouseEventData = new SMouseEventData
 			{
 				eventType = (EMouseEvent)wParam,
 				cursorPosition = HookHelper.IntPtrToStruct<SMouseHookData>(lParam).pt
 			};
 
-			if (
-				lastMouseEventData.eventType != mouseEventData.eventType
-				|| lastMouseEventData.cursorPosition.x != mouseEventData.cursorPosition.x
-				|| lastMouseEventData.cursorPosition.y != mouseEventData.cursorPosition.y
-			)
-			{
-				Task.Run(() => mouseEvent.Invoke(mouseEventData));
-				lastMouseEventData = mouseEventData;
-			}
+			if (mouseEventData.Equals(lastData)) return;
+            lastData = mouseEventData;
 
-			Monitor.Exit(mutexObject);
+            onData?.Invoke(mouseEventData);
 		}
-	}
+    }
 }

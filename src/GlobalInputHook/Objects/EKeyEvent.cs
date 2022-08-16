@@ -1,6 +1,6 @@
 ﻿namespace GlobalInputHook.Objects
 {
-	public enum EKeyEvent
+	internal enum EKeyEvent
 	{
 		KEY_DOWN = 0x100,
 		KEY_UP = 0x101,

@@ -1,7 +1,6 @@
 ﻿using System;
 using GlobalInputHook.Objects;
 using GlobalInputHook.Tools;
-using Forms = System.Windows.Forms;
 
 namespace GlobalInputHook.Tests
 {
@@ -12,31 +11,56 @@ namespace GlobalInputHook.Tests
             //You must provide a unique IPC name for the program here.
             /*You can optinally also provide the path for the hook program here, the binary must however be called `GlobalInputHook.exe`
             By default the program will look in the current working directory for the binary.*/
-            HookClientHelper dataHook = HookClientHelper.GetOrCreateInstance("global_input_hook", 1000);
+            HookClientHelper dataHook = HookClientHelper.GetOrCreateInstance("global_input_hook_test");
 
-            dataHook.keyboardEvent += HookClientHelper_KeyboardEvent;
-            dataHook.mouseEvent += HookClientHelper_MouseEvent;
+            dataHook.onData += HookClientHelper_onData;
 
             Console.ReadLine();
+            
             dataHook.Dispose();
         }
 
-        private static void HookClientHelper_KeyboardEvent(SKeyboardEventData keyboardEventData)
+        private static void HookClientHelper_onData(SHookData hookData)
         {
-            Console.WriteLine("HookClientHelper_KeyboardEvent"
-                + $" KeyEvent:{Enum.GetName(typeof(EKeyEvent), keyboardEventData.eventType)}"
-                + $" KeyCode:{keyboardEventData.keyCode}"
-                + $" Key:{(Forms.Keys)keyboardEventData.keyCode}"
-            ); //Example output: ...KeyEvent:KEY_DOWN KeyCode:75 Key:K
+            switch (hookData.hookEvent)
+            {
+                case EHookEvent.KeyboardKeyUp:
+                case EHookEvent.KeyboardKeyDown:
+                    LogKeyboardEvent(hookData);
+                    break;
+                case EHookEvent.MouseButtonUp:
+                case EHookEvent.MouseButtonDown:
+                case EHookEvent.MouseMove:
+                    LogMouseEvent(hookData);
+                    break;
+                default: //EHookEvent.None, this is the default case and will also be set if a data request was sent manually.
+                    LogKeyboardEvent(hookData);
+                    LogMouseEvent(hookData);
+                    break;
+            }
         }
 
-        private static void HookClientHelper_MouseEvent(SMouseEventData mouseEventData)
+        private static void LogKeyboardEvent(SHookData hookData)
         {
-            Console.WriteLine("HookClientHelper_MouseEvent"
-                + $" MouseEvent:{Enum.GetName(typeof(EMouseEvent), mouseEventData.eventType)}"
-                + $" X:{mouseEventData.cursorPosition.x}"
-                + $" Y:{mouseEventData.cursorPosition.y}"
-            ); //Example output: ...MouseEvent:MOUSE_MOVE X:674 Y:362
+            Console.WriteLine($"PRESSED_KEYBOARD_KEYS: {string.Join(", ", hookData.pressedKeyboardKeys)}");
+            //Example output: PRESSED_KEYBOARD_KEYS
+        }
+
+        private static void LogMouseEvent(SHookData hookData)
+        {
+            if (hookData.hookEvent == EHookEvent.MouseMove || hookData.hookEvent == EHookEvent.None)
+            {
+                Console.WriteLine("MOUSE_POSITION: "
+                    + $"{hookData.mousePosition.x}"
+                    + $", {hookData.mousePosition.y}"
+                ); //Example output: MOUSE_POSITION: 674, 362
+            }
+
+            if (hookData.hookEvent != EHookEvent.MouseMove)
+            {
+                Console.WriteLine($"PRESSED_MOUSE_BUTTONS: {string.Join(", ", hookData.pressedMouseButtons)}");
+                //Example output: PRESSED_MOUSE_BUTTONS: LeftButton, RightButton
+            }
         }
     }
 }
