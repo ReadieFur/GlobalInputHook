@@ -22,33 +22,58 @@ By default the program will look in the current working directory for the binary
 HookClientHelper dataHook = HookClientHelper.GetOrCreateInstance("global_input_hook");
 ```
 #### Getting the hook data:  
-The following events will only fire when the data is different from the previous data:  
+The following event will only fire when the data is different from the previous data:  
 ```cs
-dataHook.keyboardEvent += HookClientHelper_KeyboardEvent;
-dataHook.mouseEvent += HookClientHelper_MouseEvent;
+dataHook.onData += HookClientHelper_onData;
 ```
 #### Using the event data:  
-Becuase this hook program remains basic, it will only give you the data from the hook, it will not keep track of how long keys are pressed, etc. It is up to you on how you would like to use this data once you obtain it. It **is safe** to do calculation inside these events as they will not slow down the hook program at all.
+This hook program will remain mostly basic sending you events of the currently pressed keys and mouse buttons as well as the mouse position.  
+It **is safe** to do calculation inside these events as they will not slow down the hook program at all.
 ```cs
+using System;
 using GlobalInputHook.Objects;
-using Forms = System.Windows.Forms;
 
-void HookClientHelper_KeyboardEvent(SKeyboardEventData keyboardEventData)
+private static void HookClientHelper_onData(SHookData hookData)
 {
-    Console.WriteLine("HookClientHelper_KeyboardEvent"
-        + $" KeyEvent:{Enum.GetName(keyboardEventData.eventType)}"
-        + $" KeyCode:{keyboardEventData.keyCode}"
-        + $" Key:{(Forms.Keys)keyboardEventData.keyCode}"
-    ); //Example output: ...KeyEvent:KEY_DOWN KeyCode:75 Key:K
+    switch (hookData.hookEvent)
+    {
+        case EHookEvent.KeyboardKeyUp:
+        case EHookEvent.KeyboardKeyDown:
+            LogKeyboardEvent(hookData);
+            break;
+        case EHookEvent.MouseButtonUp:
+        case EHookEvent.MouseButtonDown:
+        case EHookEvent.MouseMove:
+            LogMouseEvent(hookData);
+            break;
+        default: //EHookEvent.None, this is the default case and will also be set if a data request was sent manually.
+            LogKeyboardEvent(hookData);
+            LogMouseEvent(hookData);
+            break;
+    }
 }
 
-void HookClientHelper_MouseEvent(SMouseEventData mouseEventData)
+private static void LogKeyboardEvent(SHookData hookData)
 {
-    Console.WriteLine("HookClientHelper_MouseEvent"
-        + $" MouseEvent:{Enum.GetName(mouseEventData.eventType)}"
-        + $" X:{mouseEventData.cursorPosition.x}"
-        + $" Y:{mouseEventData.cursorPosition.y}"
-    ); //Example output: ...MouseEvent:MOUSE_MOVE X:674 Y:362
+    Console.WriteLine($"PRESSED_KEYBOARD_KEYS: {string.Join(", ", hookData.pressedKeyboardKeys)}");
+    //Example output: PRESSED_KEYBOARD_KEYS
+}
+
+private static void LogMouseEvent(SHookData hookData)
+{
+    if (hookData.hookEvent == EHookEvent.MouseMove || hookData.hookEvent == EHookEvent.None)
+    {
+        Console.WriteLine("MOUSE_POSITION: "
+            + $"{hookData.mousePosition.x}"
+            + $", {hookData.mousePosition.y}"
+        ); //Example output: MOUSE_POSITION: 674, 362
+    }
+
+    if (hookData.hookEvent != EHookEvent.MouseMove)
+    {
+        Console.WriteLine($"PRESSED_MOUSE_BUTTONS: {string.Join(", ", hookData.pressedMouseButtons)}");
+        //Example output: PRESSED_MOUSE_BUTTONS: LeftButton, RightButton
+    }
 }
 ```
 #### Make sure you dispose of the hook program!
@@ -64,3 +89,4 @@ A list of sources I used to create this program:
 | C# Hooks | https://stackoverflow.com/questions/7497024/how-to-detect-mouse-clicks |
 | C# Shared Memory | https://docs.microsoft.com/en-us/dotnet/api/system.io.memorymappedfiles.memorymappedfile |
 | Understanding why the hooks were slow outside of WinForms | https://docs.microsoft.com/en-us/windows/win32/winauto/out-of-context-hook-functions  https://stackoverflow.com/questions/7233610/hwnd-message-hook-in-winforms |
+| C# Named Pipes | https://docs.microsoft.com/en-us/dotnet/standard/io/how-to-use-named-pipes-for-network-interprocess-communication |
