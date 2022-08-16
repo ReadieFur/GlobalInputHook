@@ -8,7 +8,7 @@ namespace GlobalInputHook.Objects
     //     Specifies key codes and modifiers.
     [Flags]
     [Serializable]
-    public enum SKeyboardKeys
+    public enum EKeyboardKeys
     {
         //
         // Summary:

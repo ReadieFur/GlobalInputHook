@@ -115,14 +115,14 @@ namespace GlobalInputHook
             {
                 case EKeyEvent.SYSKEY_DOWN:
                 case EKeyEvent.KEY_DOWN:
-                    if (capturedData.pressedKeyboardKeys.Contains((SKeyboardKeys)keyboardEventData.key)) return;
-                    capturedData.pressedKeyboardKeys.Add((SKeyboardKeys)keyboardEventData.key);
+                    if (capturedData.pressedKeyboardKeys.Contains((EKeyboardKeys)keyboardEventData.key)) return;
+                    capturedData.pressedKeyboardKeys.Add((EKeyboardKeys)keyboardEventData.key);
                     hookEvent = EHookEvent.KeyboardKeyDown;
                     break;
                 case EKeyEvent.SYSKEY_UP:
                 case EKeyEvent.KEY_UP:
-                    if (!capturedData.pressedKeyboardKeys.Contains((SKeyboardKeys)keyboardEventData.key)) return;
-                    capturedData.pressedKeyboardKeys.Remove((SKeyboardKeys)keyboardEventData.key);
+                    if (!capturedData.pressedKeyboardKeys.Contains((EKeyboardKeys)keyboardEventData.key)) return;
+                    capturedData.pressedKeyboardKeys.Remove((EKeyboardKeys)keyboardEventData.key);
                     hookEvent = EHookEvent.KeyboardKeyUp;
                     break;
             }
@@ -138,23 +138,23 @@ namespace GlobalInputHook
                     //Skip mouse wheel events for now (this is because I don't know a way to tell if the mousewheel is still being used).
                     return;
                 case EMouseEvent.LBUTTON_UP:
-                    if (!capturedData.pressedMouseButtons.Contains(SMouseButtons.LeftButton)) return;
-                    capturedData.pressedMouseButtons.Remove(SMouseButtons.LeftButton);
+                    if (!capturedData.pressedMouseButtons.Contains(EMouseButtons.LeftButton)) return;
+                    capturedData.pressedMouseButtons.Remove(EMouseButtons.LeftButton);
                     hookEvent = EHookEvent.MouseButtonUp;
                     break;
                 case EMouseEvent.LBUTTON_DOWN:
-                    if (capturedData.pressedMouseButtons.Contains(SMouseButtons.LeftButton)) return;
-                    capturedData.pressedMouseButtons.Add(SMouseButtons.LeftButton);
+                    if (capturedData.pressedMouseButtons.Contains(EMouseButtons.LeftButton)) return;
+                    capturedData.pressedMouseButtons.Add(EMouseButtons.LeftButton);
                     hookEvent = EHookEvent.MouseButtonDown;
                     break;
                 case EMouseEvent.RBUTTON_UP:
-                    if (!capturedData.pressedMouseButtons.Contains(SMouseButtons.RightButton)) return;
-                    capturedData.pressedMouseButtons.Remove(SMouseButtons.RightButton);
+                    if (!capturedData.pressedMouseButtons.Contains(EMouseButtons.RightButton)) return;
+                    capturedData.pressedMouseButtons.Remove(EMouseButtons.RightButton);
                     hookEvent = EHookEvent.MouseButtonUp;
                     break;
                 case EMouseEvent.RBUTTON_DOWN:
-                    if (capturedData.pressedMouseButtons.Contains(SMouseButtons.RightButton)) return;
-                    capturedData.pressedMouseButtons.Add(SMouseButtons.RightButton);
+                    if (capturedData.pressedMouseButtons.Contains(EMouseButtons.RightButton)) return;
+                    capturedData.pressedMouseButtons.Add(EMouseButtons.RightButton);
                     hookEvent = EHookEvent.MouseButtonDown;
                     break;
                 case EMouseEvent.MOUSE_MOVE:

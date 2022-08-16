@@ -10,8 +10,8 @@ namespace GlobalInputHook
         private readonly object lockObject = new object();
 
         public SKeyboardEventData keyboardEventData;
-        public List<SKeyboardKeys> pressedKeyboardKeys = new(Enum.GetValues(typeof(SKeyboardKeys)).Length);
-        public List<SMouseButtons> pressedMouseButtons = new(Enum.GetValues(typeof(SMouseButtons)).Length);
+        public List<EKeyboardKeys> pressedKeyboardKeys = new(Enum.GetValues(typeof(EKeyboardKeys)).Length);
+        public List<EMouseButtons> pressedMouseButtons = new(Enum.GetValues(typeof(EMouseButtons)).Length);
         public SVector2 mousePosition;
 
         public SHookData? Freeze(EHookEvent hookEvent = EHookEvent.None, int millisecondsTimeout = -1)

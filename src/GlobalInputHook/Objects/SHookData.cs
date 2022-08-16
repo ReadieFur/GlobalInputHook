@@ -8,15 +8,15 @@ namespace GlobalInputHook.Objects
     {
         public EHookEvent hookEvent;
         //I have to use an array here because there are too many values to use botmap masks.
-        public IReadOnlyList<SKeyboardKeys> pressedKeyboardKeys;
-        public IReadOnlyList<SMouseButtons> pressedMouseButtons;
+        public IReadOnlyList<EKeyboardKeys> pressedKeyboardKeys;
+        public IReadOnlyList<EMouseButtons> pressedMouseButtons;
         public SVector2 mousePosition;
         
         public SHookData()
         {
             hookEvent = EHookEvent.None;
-            pressedKeyboardKeys = new List<SKeyboardKeys>(Enum.GetValues(typeof(SKeyboardKeys)).Length);
-            pressedMouseButtons = new List<SMouseButtons>(Enum.GetValues(typeof(SMouseButtons)).Length);
+            pressedKeyboardKeys = new List<EKeyboardKeys>(Enum.GetValues(typeof(EKeyboardKeys)).Length);
+            pressedMouseButtons = new List<EMouseButtons>(Enum.GetValues(typeof(EMouseButtons)).Length);
             mousePosition = new SVector2();
         }
     }

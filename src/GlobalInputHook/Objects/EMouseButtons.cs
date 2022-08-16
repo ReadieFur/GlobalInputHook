@@ -4,7 +4,7 @@ namespace GlobalInputHook.Objects
 {
     [Flags]
     [Serializable]
-    public enum SMouseButtons
+    public enum EMouseButtons
     {
         //None = 0,
         LeftButton = 1,

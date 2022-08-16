@@ -78,8 +78,8 @@
     <Compile Include="CapturedData.cs" />
     <Compile Include="Objects\SKeyboardEventData.cs" />
     <Compile Include="Objects\SKeyboardHookData.cs" />
-    <Compile Include="Objects\SKeyboardKeys.cs" />
-    <Compile Include="Objects\SMouseButtons.cs" />
+    <Compile Include="Objects\EKeyboardKeys.cs" />
+    <Compile Include="Objects\EMouseButtons.cs" />
     <Compile Include="Objects\SMouseEventData.cs" />
     <Compile Include="Objects\SMouseHookData.cs" />
     <Compile Include="Objects\SHookData.cs" />
