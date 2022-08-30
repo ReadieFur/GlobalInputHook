@@ -27,7 +27,7 @@ namespace GlobalInputHook
         [STAThread]
         static void Main()
         {
-#if RELEASE || !DEBUG_OVERRIDE
+#if !DEBUG || !DEBUG_OVERRIDE
             SetupParentWatch();
 #endif
             SetupIPC();
