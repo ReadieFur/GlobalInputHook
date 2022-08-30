@@ -6,12 +6,13 @@ namespace GlobalInputHook.Objects
     [Serializable]
     public enum EHookEvent
     {
-        None            = 2 ^ 0,
-        KeyboardKeyUp   = 2 ^ 1,
-        KeyboardKeyDown = 2 ^ 2,
-        MouseButtonUp   = 2 ^ 3,
-        MouseButtonDown = 2 ^ 4,
-        MouseMove       = 2 ^ 5,
-        //MouseScroll   = 2 ^ 6
+        None = 0,
+        ManualRequest = 1,
+        KeyboardKeyUp = 2,
+        KeyboardKeyDown = 4,
+        MouseButtonUp = 8,
+        MouseButtonDown = 16,
+        MouseMove = 32,
+        //MouseScroll = 64,
     }
 }
