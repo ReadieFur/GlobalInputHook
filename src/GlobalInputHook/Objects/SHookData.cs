@@ -14,7 +14,7 @@ namespace GlobalInputHook.Objects
         
         public SHookData()
         {
-            hookEvent = EHookEvent.None;
+            hookEvent = EHookEvent.ManualRequest;
             pressedKeyboardKeys = new List<EKeyboardKeys>(Enum.GetValues(typeof(EKeyboardKeys)).Length);
             pressedMouseButtons = new List<EMouseButtons>(Enum.GetValues(typeof(EMouseButtons)).Length);
             mousePosition = new SVector2();

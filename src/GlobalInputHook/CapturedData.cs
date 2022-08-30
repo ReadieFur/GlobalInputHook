@@ -14,7 +14,7 @@ namespace GlobalInputHook
         public List<EMouseButtons> pressedMouseButtons = new(Enum.GetValues(typeof(EMouseButtons)).Length);
         public SVector2 mousePosition;
 
-        public SHookData? Freeze(EHookEvent hookEvent = EHookEvent.None, int millisecondsTimeout = -1)
+        public SHookData? Freeze(EHookEvent hookEvent = EHookEvent.ManualRequest, int millisecondsTimeout = -1)
         {
             if (!Monitor.TryEnter(lockObject, millisecondsTimeout)) return null;
 

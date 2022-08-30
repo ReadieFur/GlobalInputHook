@@ -110,7 +110,7 @@ namespace GlobalInputHook
 
         private static void KeyboardHook_KeyboardEvent(SKeyboardEventData keyboardEventData)
         {
-            EHookEvent hookEvent = EHookEvent.None; //This value will get overwritten, it is just here as a placeholder.
+            EHookEvent hookEvent = EHookEvent.ManualRequest; //This value will get overwritten, it is just here as a placeholder.
             switch (keyboardEventData.eventType)
             {
                 case EKeyEvent.SYSKEY_DOWN:
@@ -131,7 +131,7 @@ namespace GlobalInputHook
 
         private static void MouseHook_MouseEvent(SMouseEventData mouseEventData)
         {
-            EHookEvent hookEvent = EHookEvent.None;
+            EHookEvent hookEvent = EHookEvent.ManualRequest;
             switch (mouseEventData.eventType)
             {
                 case EMouseEvent.MOUSEWHEEL:
