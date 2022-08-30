@@ -35,7 +35,7 @@ namespace GlobalInputHook.Tools
         {
             this.maxUpdateRateMS = 1;
             this.ipcName = ipcName;
-            inputHookBinary = (inputHookBinaryPath ?? Environment.CurrentDirectory) + "\\GlobalInputHook.exe";
+            inputHookBinary = inputHookBinaryPath ?? (Environment.CurrentDirectory + "\\GlobalInputHook.exe");
             
             StartHookProcess();
             StartIPC();
@@ -71,6 +71,7 @@ namespace GlobalInputHook.Tools
         private void StartIPC()
         {
             pipeClient = new PipeClient(ipcName, Helpers.ComputeBufferSizeOf<SHookData>());
+            
             pipeClient.onMessage += PipeClient_onMessage;
             pipeClient.onDispose += PipeClient_onDispose;
         }
