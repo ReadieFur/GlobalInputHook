@@ -217,6 +217,7 @@
     <Compile Include="HookHelper.cs" />
     <Compile Include="HookManager.cs" />
     <Compile Include="KeyboardHook.cs" />
+    <Compile Include="InputHookManager.cs" />
     <Compile Include="MouseHook.cs" />
     <Compile Include="Objects\EHookEvent.cs" />
     <Compile Include="Objects\EKeyEvent.cs" />
@@ -232,7 +233,8 @@
     <Compile Include="Objects\SVector2.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Tools\HookClientHelper.cs" />
+    <Compile Include="Tools\HookClientHelperInternal.cs" />
+    <Compile Include="Tools\HookClientHelperIPC.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
