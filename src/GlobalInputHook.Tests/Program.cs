@@ -11,8 +11,7 @@ namespace GlobalInputHook.Tests
             //You must provide a unique IPC name for the program here.
             /*You can optinally also provide the path for the hook program here, the binary must however be called `GlobalInputHook.exe`
             By default the program will look in the current working directory for the binary.*/
-            HookClientHelper dataHook = HookClientHelper.GetOrCreateInstance("global_input_hook_test");
-
+            HookClientHelperIPC dataHook = HookClientHelperIPC.GetOrCreateInstance("global_input_hook_test");
             dataHook.onData += HookClientHelper_onData;
 
             Console.ReadLine();

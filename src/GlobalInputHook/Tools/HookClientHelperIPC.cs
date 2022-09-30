@@ -6,17 +6,16 @@ using CSharpTools.Pipes;
 
 namespace GlobalInputHook.Tools
 {
-    //Manage the shared memory and raise events on data.
-    public class HookClientHelper : IDisposable
+    public class HookClientHelperIPC : IDisposable
     {
         #region Static
         //public const int UPDATE_RATE_MS = 1; //In milliseconds.
-        public static HookClientHelper instance { get; private set; }
+        public static HookClientHelperIPC instance { get; private set; }
 
-        public static HookClientHelper GetOrCreateInstance(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
+        public static HookClientHelperIPC GetOrCreateInstance(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
         {
             if (instance != null) return instance;
-            instance = new HookClientHelper(ipcName, maxUpdateRateMS, inputHookBinaryPath);
+            instance = new HookClientHelperIPC(ipcName, maxUpdateRateMS, inputHookBinaryPath);
             return instance;
         }
         #endregion
@@ -31,7 +30,7 @@ namespace GlobalInputHook.Tools
 
         public Action<SHookData>? onData;
 
-        private HookClientHelper(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
+        private HookClientHelperIPC(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
         {
             this.maxUpdateRateMS = 1;
             this.ipcName = ipcName;
@@ -41,7 +40,7 @@ namespace GlobalInputHook.Tools
             StartIPC();
         }
 
-        ~HookClientHelper() => Dispose();
+        ~HookClientHelperIPC() => Dispose();
 
         public void Dispose()
         {
