@@ -30,8 +30,9 @@ namespace GlobalInputHook.Tools
         {
             if (!isOnValidatedThread && !skipThreadCheck)
             {
-                if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA || !Application.MessageLoop)
-                    throw new CustomAttributeFormatException("The executing thread is not an STAThread or does not have a running message loop.");
+                if (Thread.CurrentThread.GetApartmentState() != ApartmentState.STA/* || !Application.MessageLoop*/)
+                    //throw new CustomAttributeFormatException("The executing thread is not an STAThread or does not have a running message loop.");
+                    throw new CustomAttributeFormatException("The executing thread is not an STAThread.");
                 isOnValidatedThread = true;
             }
             else isOnValidatedThread = false; //Assume we are not on an STA thread if the check is skipped.
