@@ -11,20 +11,37 @@ From my testing this program has been able to capture system wide input just fin
 #### Prerequisites:  
 - To use this program your application must be running on Windows and have the program files in your build folder. The latest release of this project can be grabbed [here](github.com/ReadieFur/GlobalInputHook/releases/latest).  
 
-Once you have met the prerequisites, add the `GlobalInputHook.exe` to your project references and you will be able to use the helper functions I have provided (under the namespace `GlobalInputHook.Tools`) to work with the program and shared memory object, here is a basic demo of how to use it (This code can also be found in the test project [here](https://github.com/ReadieFur/GlobalInputHook/tree/development/src/GlobalInputHook.Tests)):  
+Once you have met the prerequisites, add `GlobalInputHook` to your project references and you will be able to use the helper functions I have provided (under the namespace `GlobalInputHook.Tools`) to work with the program and shared memory object, here is a basic demo of how to use it (This code can also be found in the test project [here](https://github.com/ReadieFur/GlobalInputHook/tree/development/src/GlobalInputHook.Tests)):  
 #### Creating an instance of the hook program:  
+There are two ways of creating an instance of the hook program.  
+One method will use an IPC channel which will run the hook program under a seperate child process (useful for mismatched framework versions). This method requres the `GlobalInputHook.IPC` release files on top of the `GlobalInputHook` release files.  
+The other method will run the hook program in the same process as your application.
+##### IPC Method:
 ```cs
-using GlobalInputHook.Tools;
+using GlobalInputHook.IPC.Tools;
 
 //You must provide a unique IPC name for the program here.
 /*You can optinally also provide the path for the hook program here, the binary must however be called `GlobalInputHook.exe`
 By default the program will look in the current working directory for the binary.*/
-HookClientHelper dataHook = HookClientHelper.GetOrCreateInstance("global_input_hook");
+IPCInstanceHelper dataHook = IPCInstanceHelper.GetOrCreateInstance("global_input_hook");
+```
+##### DLL Method:
+```cs
+using GlobalInputHook.Tools;
+
+DLLInstanceHelper.StartHookOnNewSTAMessageThread(1); //Optionally specify the maximum update rate in ms.
+//OR, If your program is already running on an STA thread WITH a message loop, feel free to use this instead.
+DLLInstanceHelper.Hook();
 ```
 #### Getting the hook data:  
 The following event will only fire when the data is different from the previous data:  
+##### IPC Method:
 ```cs
-dataHook.onData += HookClientHelper_onData;
+dataHook.OnData += HookClientHelper_OnData;
+```
+##### DLL Method:
+```cs
+DLLInstanceHelper.OnData += HookClientHelper_OnData;
 ```
 #### Using the event data:  
 This hook program will remain mostly basic sending you events of the currently pressed keys and mouse buttons as well as the mouse position.  
@@ -33,7 +50,7 @@ It **is safe** to do calculation inside these events as they will not slow down 
 using System;
 using GlobalInputHook.Objects;
 
-private static void HookClientHelper_onData(SHookData hookData)
+private static void HookClientHelper_OnData(SHookData hookData)
 {
     switch (hookData.hookEvent)
     {
