@@ -1,18 +1,17 @@
 ﻿using System;
 using GlobalInputHook.Objects;
 
+#nullable enable
 namespace GlobalInputHook
 {
     internal class MouseHook : AHook<SMouseEventData>
 	{
-		public static readonly MouseHook INSTANCE = new MouseHook();
-
 		private SMouseEventData lastData;
 
 		protected override int HOOK_TYPE_ID { get => 14; }
 		protected override string LIBRARY { get => "User32"; }
 
-		public override event Action<SMouseEventData>? onData;
+		public override event Action<SMouseEventData>? OnData;
 
 		protected override void HookCallback(int code, int wParam, IntPtr lParam)
         {
@@ -25,7 +24,7 @@ namespace GlobalInputHook
 			if (mouseEventData.Equals(lastData)) return;
             lastData = mouseEventData;
 
-            onData?.Invoke(mouseEventData);
+            OnData?.Invoke(mouseEventData);
 		}
     }
 }

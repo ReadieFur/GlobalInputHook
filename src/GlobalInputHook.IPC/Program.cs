@@ -1,13 +1,15 @@
-//#define DEBUG_OVERRIDE
+﻿//#define DEBUG_OVERRIDE
 
 using System;
+using System.Diagnostics;
 using System.Windows.Forms;
 using Threading = System.Threading;
 using GlobalInputHook.Objects;
-using System.Diagnostics;
+using GlobalInputHook.Tools;
 using CSharpTools.Pipes;
 
-namespace GlobalInputHook
+#nullable enable
+namespace GlobalInputHook.IPC
 {
     //TODO: Make this program a singleton which requires an owner at all times, if the host process ends, signal another program to take over (if applicable).
 
@@ -30,11 +32,11 @@ namespace GlobalInputHook
             SetupIPC();
 
             int maxUpdateRateMSArgIndex = Array.FindIndex(args, itm => itm == "--max-update-rate-ms");
-            if (maxUpdateRateMSArgIndex == -1 || ++maxUpdateRateMSArgIndex >= args.Length) Environment.Exit((int)EExitCodes.InvalidMaxUpdateRateArgument);
-            if (!int.TryParse(args[maxUpdateRateMSArgIndex], out InputHookManager.maxUpdateRateMS)) Environment.Exit((int)EExitCodes.InvalidMaxUpdateRateArgument);
+            if (maxUpdateRateMSArgIndex == -1 || ++maxUpdateRateMSArgIndex >= args.Length) Environment.Exit((int)EExitCode.InvalidMaxUpdateRateArgument);
+            if (!int.TryParse(args[maxUpdateRateMSArgIndex], out int maxUpdateRateMS)) Environment.Exit((int)EExitCode.InvalidMaxUpdateRateArgument);
 
-            InputHookManager.updateCallback = hookData => pipeServerManager.BroadcastMessage(Helpers.Serialize(hookData));
-            InputHookManager.SetupHooks();
+            DLLInstanceHelper.OnUpdate += hookData => pipeServerManager.BroadcastMessage(Helpers.Serialize(hookData));
+            DLLInstanceHelper.Hook(maxUpdateRateMS);
 
             Application.ApplicationExit += Application_ApplicationExit;
 
@@ -50,18 +52,18 @@ namespace GlobalInputHook
         private static void SetupParentWatch()
         {
             int parentProcessIDArgIndex = Array.FindIndex(args, itm => itm == "--parent-process-id");
-            if (parentProcessIDArgIndex == -1 || ++parentProcessIDArgIndex >= args.Length) Environment.Exit((int)EExitCodes.InvalidParentProcessID);
-            
+            if (parentProcessIDArgIndex == -1 || ++parentProcessIDArgIndex >= args.Length) Environment.Exit((int)EExitCode.InvalidParentProcessID);
+
             int parentProcessID;
-            if (!int.TryParse(args[parentProcessIDArgIndex], out parentProcessID)) Environment.Exit((int)EExitCodes.InvalidParentProcessID);
-            
+            if (!int.TryParse(args[parentProcessIDArgIndex], out parentProcessID)) Environment.Exit((int)EExitCode.InvalidParentProcessID);
+
             Process? parentProcess = null;
             try { parentProcess = Process.GetProcessById(parentProcessID); }
-            catch { Environment.Exit((int)EExitCodes.InvalidParentProcessID); }
-            
+            catch { Environment.Exit((int)EExitCode.InvalidParentProcessID); }
+
             parentProcessWatchTimer = new Threading.Timer((_) =>
             {
-                if (parentProcess!.HasExited) Environment.Exit((int)EExitCodes.ParentProcessExited);
+                if (parentProcess!.HasExited) Environment.Exit((int)EExitCode.ParentProcessExited);
             }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
         }
 
@@ -71,7 +73,7 @@ namespace GlobalInputHook
             string ipcName = "global_input_hook";
 #else
             int mapArgIndex = Array.FindIndex(args, itm => itm == "--ipc-name");
-            if (mapArgIndex == -1 || ++mapArgIndex >= args.Length) Environment.Exit((int)EExitCodes.InvalidMapArgument);
+            if (mapArgIndex == -1 || ++mapArgIndex >= args.Length) Environment.Exit((int)EExitCode.InvalidMapArgument);
             string ipcName = args[mapArgIndex];
 #endif
 
@@ -81,6 +83,6 @@ namespace GlobalInputHook
 
         //For manual request of data.
         private static void PipeServerManager_onMessage(Guid id, ReadOnlyMemory<byte> data) =>
-            pipeServerManager.SendMessage(id, Helpers.Serialize(InputHookManager.GetCapturedData().Value));
+            pipeServerManager.SendMessage(id, Helpers.Serialize(DLLInstanceHelper.GetCapturedData()!.Value));
     }
 }

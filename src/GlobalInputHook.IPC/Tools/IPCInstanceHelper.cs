@@ -1,21 +1,22 @@
 ﻿using System;
-using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using GlobalInputHook.Objects;
 using CSharpTools.Pipes;
 
-namespace GlobalInputHook.Tools
+#nullable enable
+namespace GlobalInputHook.IPC.Tools
 {
-    public class HookClientHelperIPC : IDisposable
+    public class IPCInstanceHelper : IDisposable
     {
         #region Static
         //public const int UPDATE_RATE_MS = 1; //In milliseconds.
-        public static HookClientHelperIPC instance { get; private set; }
+        public static IPCInstanceHelper? instance { get; private set; }
 
-        public static HookClientHelperIPC GetOrCreateInstance(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
+        public static IPCInstanceHelper GetOrCreateInstance(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
         {
             if (instance != null) return instance;
-            instance = new HookClientHelperIPC(ipcName, maxUpdateRateMS, inputHookBinaryPath);
+            instance = new IPCInstanceHelper(ipcName, maxUpdateRateMS, inputHookBinaryPath);
             return instance;
         }
         #endregion
@@ -28,19 +29,21 @@ namespace GlobalInputHook.Tools
         private Process? process;
         private SHookData lastData;
 
-        public Action<SHookData>? onData;
+        public Action<SHookData>? OnUpdate;
 
-        private HookClientHelperIPC(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+        private IPCInstanceHelper(string ipcName, int maxUpdateRateMS = 1, string? inputHookBinaryPath = null)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
         {
             this.maxUpdateRateMS = 1;
             this.ipcName = ipcName;
-            inputHookBinary = inputHookBinaryPath ?? (Environment.CurrentDirectory + "\\GlobalInputHook.exe");
-            
+            inputHookBinary = inputHookBinaryPath ?? (Environment.CurrentDirectory + "\\GlobalInputHook.IPC.exe");
+
             StartHookProcess();
             StartIPC();
         }
 
-        ~HookClientHelperIPC() => Dispose();
+        ~IPCInstanceHelper() => Dispose();
 
         public void Dispose()
         {
@@ -58,7 +61,7 @@ namespace GlobalInputHook.Tools
             process.StartInfo.CreateNoWindow = true;
             process.StartInfo.Arguments = $"--parent-process-id {Process.GetCurrentProcess().Id} --ipc-name {ipcName} --max-update-rate-ms {maxUpdateRateMS}";
             process.Start();
-            
+
             await Task.Run(process.WaitForExit);
             pipeClient?.Dispose();
 
@@ -70,7 +73,6 @@ namespace GlobalInputHook.Tools
         private void StartIPC()
         {
             pipeClient = new PipeClient(ipcName, Helpers.ComputeBufferSizeOf<SHookData>());
-            
             pipeClient.onMessage += PipeClient_onMessage;
             pipeClient.onDispose += PipeClient_onDispose;
         }
@@ -80,10 +82,10 @@ namespace GlobalInputHook.Tools
             SHookData serializedData;
             try { serializedData = Helpers.Deserialize<SHookData>(data.ToArray()); }
             catch { return; }
-            
+
             if (serializedData.Equals(lastData)) return;
 
-            onData?.Invoke(serializedData);
+            OnUpdate?.Invoke(serializedData);
 
             lastData = serializedData;
         }
