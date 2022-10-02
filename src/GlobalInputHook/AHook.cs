@@ -1,5 +1,6 @@
 ﻿using System;
 
+#nullable enable
 namespace GlobalInputHook
 {
     internal abstract class AHook<TSerializedData>
@@ -10,9 +11,11 @@ namespace GlobalInputHook
 		protected abstract string LIBRARY { get; }
 		//protected abstract TSerializedData lastData { get; set; }
 
-		public abstract event Action<TSerializedData>? onData;
+		public abstract event Action<TSerializedData>? OnData;
+        
+        ~AHook() => Unhook();
 
-		public void Hook()
+        public void Hook()
 		{
 			if (hookManager != null) return;
 			hookManager = new HookManager(HookHelper.WrapHookProcVoidCallback(HookCallback), HOOK_TYPE_ID, LIBRARY);

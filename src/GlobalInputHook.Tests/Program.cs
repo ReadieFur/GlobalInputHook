@@ -1,6 +1,7 @@
 ﻿using System;
 using GlobalInputHook.Objects;
 using GlobalInputHook.Tools;
+using GlobalInputHook.IPC.Tools;
 
 namespace GlobalInputHook.Tests
 {
@@ -8,18 +9,29 @@ namespace GlobalInputHook.Tests
     {
         static void Main(string[] args)
         {
-            //You must provide a unique IPC name for the program here.
-            /*You can optinally also provide the path for the hook program here, the binary must however be called `GlobalInputHook.exe`
-            By default the program will look in the current working directory for the binary.*/
-            HookClientHelperIPC dataHook = HookClientHelperIPC.GetOrCreateInstance("global_input_hook_test");
-            dataHook.onData += HookClientHelper_onData;
-
-            Console.ReadLine();
-            
-            dataHook.Dispose();
+#if true
+            //DLL method.
+            DLLInstanceHelper.OnUpdate += HookClientHelper_OnData;
+            //DLLInstanceHelper.Hook(1, true); //If your program is already running on an STA thread WITH a message loop, feel free to use this instead.
+            DLLInstanceHelper.StartHookOnNewSTAMessageThread(1);
+            WaitForEnter();
+            DLLInstanceHelper.Unhook();
+#else
+            //IPC method.
+            IPCInstanceHelper instance = IPCInstanceHelper.GetOrCreateInstance("global_input_hook_test");
+            instance.OnUpdate += HookClientHelper_OnData;
+            WaitForEnter();
+            instance.Dispose();
+#endif
         }
 
-        private static void HookClientHelper_onData(SHookData hookData)
+        private static void WaitForEnter()
+        {
+            while (true) if (Console.ReadKey(true).Key == ConsoleKey.Enter) break;
+        }
+
+
+        private static void HookClientHelper_OnData(SHookData hookData)
         {
             switch (hookData.hookEvent)
             {

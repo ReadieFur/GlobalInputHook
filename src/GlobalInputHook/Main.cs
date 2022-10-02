@@ -1,43 +1,66 @@
 ﻿using System;
-using System.Windows.Forms;
-using Threading = System.Threading;
 using GlobalInputHook.Objects;
-using System.Diagnostics;
-using CSharpTools.Pipes;
 
+#nullable enable
 namespace GlobalInputHook
 {
-    internal static class InputHookManager
+    internal class Main
     {
-        private static bool isSetup = false;
-        private static DateTime lastUpdateTime;
-        private static CapturedData capturedData = new();
+        #region Static
+        private static Main? _instance;
 
-        internal static int maxUpdateRateMS;
-        internal static Action<SHookData>? updateCallback = null;
-
-        internal static void SetupHooks()
+        public static Main instance
         {
-            if (isSetup) return;
-
-            KeyboardHook.INSTANCE.onData += KeyboardHook_KeyboardEvent;
-            MouseHook.INSTANCE.onData += MouseHook_MouseEvent;
-
-            KeyboardHook.INSTANCE.Hook();
-            MouseHook.INSTANCE.Hook();
+            get
+            {
+                if (_instance == null) _instance = new();
+                return _instance;
+            }
         }
 
-        internal static void DisposeHooks()
+        public static void Dispose()
         {
-            if (!isSetup) return;
-            KeyboardHook.INSTANCE.Unhook();
-            MouseHook.INSTANCE.Unhook();
+            if (_instance == null) return;
+            _instance = null;
+        }
+        #endregion
+
+        public delegate void UpdateCallback(SHookData hookData);
+
+        internal int maxUpdateRateMS = 1;
+        internal UpdateCallback? updateCallback = null;
+
+        private DateTime lastUpdateTime;
+        private CapturedData capturedData = new();
+        private KeyboardHook keyboardHook = new();
+        private MouseHook mouseHook = new();
+
+        //An unhook is also done in the AHook destructor.
+        private Main()
+        {
+            keyboardHook.OnData += KeyboardHook_KeyboardEvent;
+            mouseHook.OnData += MouseHook_MouseEvent;
         }
 
-        internal static SHookData? GetCapturedData(EHookEvent hookEvent = EHookEvent.ManualRequest, int millisecondsTimeout = -1)
+        public void Hook()
+        {
+            keyboardHook.Hook();
+            mouseHook.Hook();
+        }
+
+        /// <summary>
+        /// This does not need to be called when disposing of this object.
+        /// </summary>
+        public void Unhook()
+        {
+            keyboardHook.Unhook();
+            mouseHook.Unhook();
+        }
+
+        internal SHookData? GetCapturedData(EHookEvent hookEvent = EHookEvent.ManualRequest, int millisecondsTimeout = -1)
             => capturedData.Freeze(hookEvent, millisecondsTimeout);
 
-        private static void Update(EHookEvent hookEvent)
+        private void Update(EHookEvent hookEvent)
         {
             SHookData? data = capturedData.Freeze(hookEvent);
             if (data == null) return;
@@ -46,10 +69,10 @@ namespace GlobalInputHook
             if (maxUpdateRateMS > -1 && now - lastUpdateTime < TimeSpan.FromMilliseconds(maxUpdateRateMS)) return;
             lastUpdateTime = now;
 
-            updateCallback?.Invoke(capturedData.Freeze(hookEvent).Value);
+            updateCallback?.Invoke(capturedData.Freeze(hookEvent)!.Value);
         }
 
-        private static void KeyboardHook_KeyboardEvent(SKeyboardEventData keyboardEventData)
+        private void KeyboardHook_KeyboardEvent(SKeyboardEventData keyboardEventData)
         {
             EHookEvent hookEvent = EHookEvent.ManualRequest; //This value will get overwritten, it is just here as a placeholder.
             switch (keyboardEventData.eventType)
@@ -70,7 +93,7 @@ namespace GlobalInputHook
             Update(hookEvent);
         }
 
-        private static void MouseHook_MouseEvent(SMouseEventData mouseEventData)
+        private void MouseHook_MouseEvent(SMouseEventData mouseEventData)
         {
             EHookEvent hookEvent = EHookEvent.ManualRequest;
             switch (mouseEventData.eventType)

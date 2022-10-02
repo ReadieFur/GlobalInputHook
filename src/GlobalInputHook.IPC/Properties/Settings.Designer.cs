@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace GlobalInputHook.Properties
+namespace GlobalInputHook.IPC.Properties
 {
 
 

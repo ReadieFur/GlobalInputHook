@@ -2,18 +2,17 @@
 using System.Windows.Forms;
 using GlobalInputHook.Objects;
 
+#nullable enable
 namespace GlobalInputHook
 {
     internal class KeyboardHook : AHook<SKeyboardEventData>
 	{
-		public static readonly KeyboardHook INSTANCE = new KeyboardHook();
-
 		private SKeyboardEventData lastData;
 
 		protected override int HOOK_TYPE_ID { get => 13; }
 		protected override string LIBRARY { get => "User32"; }
 
-        public override event Action<SKeyboardEventData>? onData;
+        public override event Action<SKeyboardEventData>? OnData;
 
 		protected override void HookCallback(int code, int wParam, IntPtr lParam)
 		{
@@ -26,7 +25,7 @@ namespace GlobalInputHook
 			if (keyboardEventData.Equals(lastData)) return;
             lastData = keyboardEventData;
 
-			onData?.Invoke(keyboardEventData);
+			OnData?.Invoke(keyboardEventData);
 		}
 	}
 }

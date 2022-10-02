@@ -1,6 +1,6 @@
-﻿namespace GlobalInputHook
+﻿namespace GlobalInputHook.IPC
 {
-    public enum EExitCodes
+    public enum EExitCode
     {
         Normal = 0,
         InvalidParentProcessID,
